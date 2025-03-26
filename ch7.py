@@ -13,19 +13,26 @@ import math
     DFT의 시간 복잡도 개선 버젼
 -이산 코사인 변환 DCT
     이산신호 -> 코사인 함수의 합, 주로 이미지.오디오 압축에 사용
+    
+magnitude: 푸리에 변환 결과에서 복소수 형태의 주파수 성분 크기. 이미지 주파수 성분 강도라는 뜻
+210->30: 주파수를 약화시켜서 이미지를 부드럽게만듦
+반경 45 픽셀영역 기준의 이유: 푸리에 변환해서 shift하면 고주파가 가장자리, 저주파가 중심에 위치하므로
+    반경 45 픽셀을 기준으로 하면 저주파 영역은 중앙에, 고주파 영역은 가장자리에 위치하게 됨
+    따라서 고주파 영역을 돌면서 너무 높으면 낮추는거임
 """
 
 
 
-# Read the image
+
 img = cv2.imread(r"C:\Users\DoyoungJang\Desktop\hjwork\imageComparison\lenna\Original_Image.png", cv2.IMREAD_GRAYSCALE)
 
-# getting dft of original image
+# dft 변환하고 shift 해서 저주파를 중앙으로 이동
+# magnitude 계산하고 로그 변환
 dft = cv2.dft(np.float32(img),flags = cv2.DFT_COMPLEX_OUTPUT)
 dft_shift = np.fft.fftshift(dft)
 magnitude_spectrum = 20 * np.log(cv2.magnitude(dft_shift[:,:,0],dft_shift[:,:,1]))
 
-# fun to tell whether a point is availaible inside circle of radius 'radius'
+# 주어진 점이 중심으로부터 특정 반경 내에 있는지 확인하는 함수
 def dis(a, b, radius):
     tmp = (magnitude_spectrum.shape[0] // 2 - a) ** 2 + (magnitude_spectrum.shape[1] // 2 - b) ** 2
     tmp = round(math.sqrt(tmp))
@@ -36,12 +43,11 @@ def dis(a, b, radius):
 
 
 
-# creating mask
+# 마스크 생성
 rows, cols = img.shape
 mask = np.zeros((rows,cols,1),np.uint8)
 
-# getting values pixel by pixel 
-# if pixel value > 210 change it to 30
+# 이중 for문 돌면서 중심에서 반경 45 픽셀 밖의 영역에서 magnitude 가 210 이상이면 30으로 변경 -> 마스크에 해당 값 저장
 for i in range(len(magnitude_spectrum)):
     for j in range(len(magnitude_spectrum[0])):
         if not dis(i, j, 45):
@@ -50,10 +56,10 @@ for i in range(len(magnitude_spectrum)):
         mask[i][j] = min(magnitude_spectrum[i][j], 255)
 
 
-# multiplying mask and dft of original image
+# 원본 dft결과에 마스크 적용 -> 노이즈 제거
 fshift = (dft_shift * mask)
 
-# applying inverse dft to get modified image
+# shift된 dft결과를 원위치로 되돌림 / 역dft 적용하여 이미지 도메인으로 변환 / 복소수 결과 계산하여 최종 이미지 얻
 f_ishift = np.fft.ifftshift(fshift)
 img_back = cv2.idft(f_ishift)
 img_back = cv2.magnitude(img_back[:,:,0],img_back[:,:,1])
