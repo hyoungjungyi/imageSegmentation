@@ -45,8 +45,11 @@ cv2.imwrite("./7_results/saltNpepper.jpg",add_noise(img))
 다양한 필터로 노이즈 제거
 -미디언 필터
     픽셀의 중앙값(median)을 계산하여 노이즈를 제거
--노치 필터
-    오디오 데이터에 사용
+-하이브리드 미디언 필터
+    좌상 우하 대각선의 중앙값
+    우상 좌하 대각선의 중앙값
+    5X5영역 전체의 중앙값
+    이 세가지 의 중앙값을 최종 결과로 선택
 """
 
 def apply_filters(img_path):
